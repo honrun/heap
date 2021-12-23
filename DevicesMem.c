@@ -65,6 +65,10 @@ void *pvMemMalloc(int32_t iSize)
 
 	iAddrStop = ptypeMemMin->stopAddr;
 
+	/* 防止被切割后的剩余空闲空间存储不了下一个头部信息 */
+    if((iSizeMin - iSize) < sizeof(MemType))
+        iSize = iSizeMin;
+
 	ptypeMemMin->state    = DEVICES_MEM_ENABLE;
 	ptypeMemMin->stopAddr = ptypeMemMin->startAddr + sizeof(MemType) + iSize;
 

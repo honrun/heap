@@ -33,7 +33,8 @@ int main(void)
 				pucHandleBuff[x] = pvMemMalloc(y);
 
 				/* 数据写入测试 */
-				memset(pucHandleBuff[x], x, y);
+				if(pucHandleBuff[x] != NULL)
+                    memset(pucHandleBuff[x], x, y);
 			}
 		}
 		else
