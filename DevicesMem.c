@@ -7,78 +7,78 @@
 
 MemType st_typeMemHead = {0};
 
-/* ĞèÒªÔö¼Ó sizeof(MemType) * 2 ¸ö³¤¶È£¬ÒÔÊ¹×Ö½Ú¶ÔÆë£¬ÒÔ¼°´æ´¢¹ÜÀíĞÅÏ¢ */
+/* éœ€è¦å¢åŠ  sizeof(MemType) * 2 ä¸ªé•¿åº¦ï¼Œä»¥ä½¿å­—èŠ‚å¯¹é½ï¼Œä»¥åŠå­˜å‚¨ç®¡ç†ä¿¡æ¯ */
 uint8_t st_MemHeap[DEVICES_MEM_LENGTH + sizeof(MemType) * 2] = {0};
 
 
 
 void vMemInit(void)
 {
-	MemType *ptypeMemNow = NULL;
+    MemType *ptypeMemNow = NULL;
 
-	/* µØÖ· N ×Ö½Ú¶ÔÆë */
-	st_typeMemHead.startAddr = memRoundUp((uint32_t)(&st_MemHeap), DEVICES_MEM_ROUNDUP_VALUE);
-	st_typeMemHead.stopAddr  = st_typeMemHead.startAddr + DEVICES_MEM_LENGTH;
-	st_typeMemHead.state     = DEVICES_MEM_DISABLE;
+    /* åœ°å€ N å­—èŠ‚å¯¹é½ */
+    st_typeMemHead.startAddr = memRoundUp((uint32_t)(&st_MemHeap), DEVICES_MEM_ROUNDUP_VALUE);
+    st_typeMemHead.stopAddr  = st_typeMemHead.startAddr + DEVICES_MEM_LENGTH;
+    st_typeMemHead.state     = DEVICES_MEM_DISABLE;
 
-	/* ³õÊ¼»¯µÚÒ»¸ö¿ÕÏĞ¿Õ¼ä */
-	ptypeMemNow  = (MemType *)st_typeMemHead.startAddr;
-	*ptypeMemNow = st_typeMemHead;
+    /* åˆå§‹åŒ–ç¬¬ä¸€ä¸ªç©ºé—²ç©ºé—´ */
+    ptypeMemNow  = (MemType *)st_typeMemHead.startAddr;
+    *ptypeMemNow = st_typeMemHead;
 
-	/* ³õÊ¼»¯ÄÚ´æ¿Õ¼äÄ©Î²µÄ¹ÜÀíĞÅÏ¢ */
-	ptypeMemNow  = (MemType *)st_typeMemHead.stopAddr;
-	*ptypeMemNow = st_typeMemHead;
-	ptypeMemNow->state = DEVICES_MEM_ENABLE;
+    /* åˆå§‹åŒ–å†…å­˜ç©ºé—´æœ«å°¾çš„ç®¡ç†ä¿¡æ¯ */
+    ptypeMemNow  = (MemType *)st_typeMemHead.stopAddr;
+    *ptypeMemNow = st_typeMemHead;
+    ptypeMemNow->state = DEVICES_MEM_ENABLE;
 }
 
 void *pvMemMalloc(int32_t iSize)
 {
-	void *pvHandle = NULL;
-	MemType *ptypeMemNow = NULL, *ptypeMemNext = NULL, *ptypeMemMin = NULL;
-	int32_t iAddrStop = 0, iSizeNow = 0, iSizeMin = 0x7FFFFFFF;
+    void *pvHandle = NULL;
+    MemType *ptypeMemNow = NULL, *ptypeMemNext = NULL, *ptypeMemMin = NULL;
+    int32_t iAddrStop = 0, iSizeNow = 0, iSizeMin = 0x7FFFFFFF;
 
-	if(iSize < 0)
-		return NULL;
+    if(iSize < 0)
+        return NULL;
 
-	/* ³¤¶È N ×Ö½Ú¶ÔÆë */
-	iSize = memRoundUp(iSize, DEVICES_MEM_ROUNDUP_VALUE);
+    /* é•¿åº¦ N å­—èŠ‚å¯¹é½ */
+    iSize = memRoundUp(iSize, DEVICES_MEM_ROUNDUP_VALUE);
 
-	/* ±éÀúmem¿Õ¼ä */
-	for(ptypeMemNow = (MemType *)st_typeMemHead.startAddr; (int32_t)ptypeMemNow < st_typeMemHead.stopAddr; ptypeMemNow = (MemType *)ptypeMemNow->stopAddr)
-	{
-		if(ptypeMemNow->state != DEVICES_MEM_ENABLE)
-		{
-			iSizeNow = ptypeMemNow->stopAddr - ptypeMemNow->startAddr - sizeof(MemType);
+    /* éå†memç©ºé—´ */
+    for(ptypeMemNow = (MemType *)st_typeMemHead.startAddr; (int32_t)ptypeMemNow < st_typeMemHead.stopAddr; ptypeMemNow = (MemType *)ptypeMemNow->stopAddr)
+    {
+        if(ptypeMemNow->state != DEVICES_MEM_ENABLE)
+        {
+            iSizeNow = ptypeMemNow->stopAddr - ptypeMemNow->startAddr - sizeof(MemType);
 
-			/* ×îĞ¡¿ÕÏĞÆ¥Åä */
-			if((iSizeNow >= iSize) && (iSizeMin > iSizeNow))
-			{
-				iSizeMin = iSizeNow;
-				ptypeMemMin = ptypeMemNow;
+            /* æœ€å°ç©ºé—²åŒ¹é… */
+            if((iSizeNow >= iSize) && (iSizeMin > iSizeNow))
+            {
+                iSizeMin = iSizeNow;
+                ptypeMemMin = ptypeMemNow;
 
-				/* ÕÒµ½¸ÕºÃÏàÍ¬´óĞ¡µÄ¿ÕÏĞ¿Õ¼ä¾ÍÖ±½ÓÍË³ö±éÀú */
-				if(iSizeMin == iSize)
-					break;
-			}
-		}
-	}
+                /* æ‰¾åˆ°åˆšå¥½ç›¸åŒå¤§å°çš„ç©ºé—²ç©ºé—´å°±ç›´æ¥é€€å‡ºéå† */
+                if(iSizeMin == iSize)
+                    break;
+            }
+        }
+    }
 
-	/* Ã»Æ¥Åäµ½ºÏÊÊµÄ×îĞ¡¿Õ¼ä£¬±íÊ¾µ±Ç°·ÖÅä²»ÁË */
-	if(ptypeMemMin == NULL)
-		return NULL;
+    /* æ²¡åŒ¹é…åˆ°åˆé€‚çš„æœ€å°ç©ºé—´ï¼Œè¡¨ç¤ºå½“å‰åˆ†é…ä¸äº† */
+    if(ptypeMemMin == NULL)
+        return NULL;
 
-	/* ×îĞ¡Æ¥Åä¿Õ¼ä±»»®·Öºó»¹ÓĞÊ£Óà¿Õ¼ä£¬²¢ÄÜ¹»´æ´¢ÏÂÒ»¸öÍ·²¿ĞÅÏ¢ */
+    /* æœ€å°åŒ¹é…ç©ºé—´è¢«åˆ’åˆ†åè¿˜æœ‰å‰©ä½™ç©ºé—´ï¼Œå¹¶èƒ½å¤Ÿå­˜å‚¨ä¸‹ä¸€ä¸ªå¤´éƒ¨ä¿¡æ¯ */
     if((iSizeMin - iSize) >= sizeof(MemType))
-	{
+    {
         iAddrStop = ptypeMemMin->startAddr + sizeof(MemType) + iSize;
 
-		ptypeMemNext = (MemType *)iAddrStop;
-		ptypeMemNext->startAddr = iAddrStop;
-		ptypeMemNext->stopAddr  = ptypeMemMin->stopAddr;
-		ptypeMemNext->state     = DEVICES_MEM_DISABLE;
-	}
-	/* À©Èİ£¬²»ÒÅÁôÓÃ²»ÉÏµÄĞ¡¿ÕÏĞ¿Õ¼ä */
-	else
+        ptypeMemNext = (MemType *)iAddrStop;
+        ptypeMemNext->startAddr = iAddrStop;
+        ptypeMemNext->stopAddr  = ptypeMemMin->stopAddr;
+        ptypeMemNext->state     = DEVICES_MEM_DISABLE;
+    }
+    /* æ‰©å®¹ï¼Œä¸é—ç•™ç”¨ä¸ä¸Šçš„å°ç©ºé—²ç©ºé—´ */
+    else
     {
         iSize = iSizeMin;
     }
@@ -86,58 +86,58 @@ void *pvMemMalloc(int32_t iSize)
     ptypeMemMin->state = DEVICES_MEM_ENABLE;
     ptypeMemMin->stopAddr = ptypeMemMin->startAddr + sizeof(MemType) + iSize;
 
-	/* ·µ»Ø¿Õ¼ä¹ÜÀíĞÅÏ¢Ö®ºóµÄ¿Õ¼äµØÖ· */
-	pvHandle = (void *)(ptypeMemMin->startAddr + sizeof(MemType));
+    /* è¿”å›ç©ºé—´ç®¡ç†ä¿¡æ¯ä¹‹åçš„ç©ºé—´åœ°å€ */
+    pvHandle = (void *)(ptypeMemMin->startAddr + sizeof(MemType));
 
-	return pvHandle;
+    return pvHandle;
 }
 
 void *pvMemCalloc(int32_t iNumber, int32_t iSize)
 {
-	void *pvHandle = NULL;
-	int32_t iSizeTemp = iNumber * iSize;
+    void *pvHandle = NULL;
+    int32_t iSizeTemp = iNumber * iSize;
 
-	/* ³¤¶È N ×Ö½Ú¶ÔÆë */
-	iSizeTemp = memRoundUp(iSizeTemp, DEVICES_MEM_ROUNDUP_VALUE);
+    /* é•¿åº¦ N å­—èŠ‚å¯¹é½ */
+    iSizeTemp = memRoundUp(iSizeTemp, DEVICES_MEM_ROUNDUP_VALUE);
 
-	pvHandle = pvMemMalloc(iSizeTemp);
+    pvHandle = pvMemMalloc(iSizeTemp);
 
-	if(pvHandle != NULL)
-	{
-		cMemSet(pvHandle, 0, iSizeTemp);
-	}
+    if(pvHandle != NULL)
+    {
+        cMemSet(pvHandle, 0, iSizeTemp);
+    }
 
-	return pvHandle;
+    return pvHandle;
 }
 
 void *pvMemRealloc(void *pvMemAddr, int32_t iSize)
 {
-	void *pvHandle = NULL;
-	MemType *ptypeMemOld = NULL, *ptypeMemNow = NULL, *ptypeMemNext = NULL;
-	int32_t iAddrStart = 0, iNewSize = 0;
+    void *pvHandle = NULL;
+    MemType *ptypeMemOld = NULL, *ptypeMemNow = NULL, *ptypeMemNext = NULL;
+    int32_t iAddrStart = 0, iNewSize = 0;
 
-	if(pvMemAddr == NULL)
-		return NULL;
+    if(pvMemAddr == NULL)
+        return NULL;
 
-    /* Î»ÒÆµ½Í·²¿¹ÜÀíĞÅÏ¢Î»ÖÃ */
-	iAddrStart = (int32_t)(pvMemAddr - sizeof(MemType));
-	if((iAddrStart < st_typeMemHead.startAddr) || (iAddrStart > st_typeMemHead.stopAddr))
-		return NULL;
+    /* ä½ç§»åˆ°å¤´éƒ¨ç®¡ç†ä¿¡æ¯ä½ç½® */
+    iAddrStart = (int32_t)(pvMemAddr - sizeof(MemType));
+    if((iAddrStart < st_typeMemHead.startAddr) || (iAddrStart > st_typeMemHead.stopAddr))
+        return NULL;
 
-	ptypeMemOld = (MemType *)(iAddrStart);
+    ptypeMemOld = (MemType *)(iAddrStart);
 
-	/* ³¤¶È N ×Ö½Ú¶ÔÆë */
-	iSize = memRoundUp(iSize, DEVICES_MEM_ROUNDUP_VALUE);
+    /* é•¿åº¦ N å­—èŠ‚å¯¹é½ */
+    iSize = memRoundUp(iSize, DEVICES_MEM_ROUNDUP_VALUE);
 
-    /* ¼ÆËãºóĞøÏÎ½Ó¿ÕÏĞ¿Õ¼äµÄ´óĞ¡ */
+    /* è®¡ç®—åç»­è¡”æ¥ç©ºé—²ç©ºé—´çš„å¤§å° */
     for(ptypeMemNow = (MemType *)ptypeMemOld->stopAddr; ptypeMemNow->state == DEVICES_MEM_DISABLE; ptypeMemNow = (MemType *)(ptypeMemNow->stopAddr));
 
     iNewSize = (int32_t)ptypeMemNow - ptypeMemOld->startAddr - sizeof(MemType);
 
-    /* Ö±½ÓÍØÕ¹ÏÎ½ÓµÄ¿ÕÏĞ¿Õ¼ä */
+    /* ç›´æ¥æ‹“å±•è¡”æ¥çš„ç©ºé—²ç©ºé—´ */
     if(iNewSize >= iSize)
     {
-        /* ×îĞ¡Æ¥Åä¿Õ¼ä±»»®·Öºó»¹ÓĞÊ£Óà¿Õ¼ä£¬²¢ÄÜ¹»´æ´¢ÏÂÒ»¸öÍ·²¿ĞÅÏ¢ */
+        /* æœ€å°åŒ¹é…ç©ºé—´è¢«åˆ’åˆ†åè¿˜æœ‰å‰©ä½™ç©ºé—´ï¼Œå¹¶èƒ½å¤Ÿå­˜å‚¨ä¸‹ä¸€ä¸ªå¤´éƒ¨ä¿¡æ¯ */
         if((iNewSize - iSize) >= sizeof(MemType))
         {
             ptypeMemOld->stopAddr = ptypeMemOld->startAddr + sizeof(MemType) + iSize;
@@ -147,7 +147,7 @@ void *pvMemRealloc(void *pvMemAddr, int32_t iSize)
             ptypeMemNext->stopAddr  = (int32_t)ptypeMemNow;
             ptypeMemNext->state     = DEVICES_MEM_DISABLE;
         }
-        /* À©Èİ£¬²»ÒÅÁôÓÃ²»ÉÏµÄĞ¡¿ÕÏĞ¿Õ¼ä */
+        /* æ‰©å®¹ï¼Œä¸é—ç•™ç”¨ä¸ä¸Šçš„å°ç©ºé—²ç©ºé—´ */
         else
         {
             iSize = iNewSize;
@@ -157,17 +157,17 @@ void *pvMemRealloc(void *pvMemAddr, int32_t iSize)
 
         return pvMemAddr;
     }
-    /* ÖØĞÂ·ÖÅä¿Õ¼ä */
+    /* é‡æ–°åˆ†é…ç©ºé—´ */
     else
     {
-        /* ·ÖÅä²»µ½Âú×ãËùĞè´óĞ¡µÄ¿Õ¼ä */
+        /* åˆ†é…ä¸åˆ°æ»¡è¶³æ‰€éœ€å¤§å°çš„ç©ºé—´ */
         if((pvHandle = pvMemMalloc(iSize)) == NULL)
             return NULL;
 
-        /* ×ªÒÆ¿½±´Êı¾İ */
+        /* è½¬ç§»æ‹·è´æ•°æ® */
         pvMemCpy(pvHandle, pvMemAddr, iSize);
 
-        /* ÊÍ·Å¾É¿Õ¼ä */
+        /* é‡Šæ”¾æ—§ç©ºé—´ */
         vMemFree(pvMemAddr);
 
         return pvHandle;
@@ -176,74 +176,74 @@ void *pvMemRealloc(void *pvMemAddr, int32_t iSize)
 
 void vMemFree(void *pvMemAddr)
 {
-	MemType *ptypeMemNow = NULL, *ptypeMemPrev = NULL, *ptypeMemNext = NULL;
-	int32_t iAddrStart = 0;
+    MemType *ptypeMemNow = NULL, *ptypeMemPrev = NULL, *ptypeMemNext = NULL;
+    int32_t iAddrStart = 0;
 
-	if(pvMemAddr == NULL)
-		return;
+    if(pvMemAddr == NULL)
+        return;
 
-    /* Î»ÒÆµ½Í·²¿¹ÜÀíĞÅÏ¢Î»ÖÃ */
-	iAddrStart = (int32_t)(pvMemAddr - sizeof(MemType));
-	if((iAddrStart < st_typeMemHead.startAddr) || (iAddrStart > st_typeMemHead.stopAddr))
-		return;
+    /* ä½ç§»åˆ°å¤´éƒ¨ç®¡ç†ä¿¡æ¯ä½ç½® */
+    iAddrStart = (int32_t)(pvMemAddr - sizeof(MemType));
+    if((iAddrStart < st_typeMemHead.startAddr) || (iAddrStart > st_typeMemHead.stopAddr))
+        return;
 
-	ptypeMemNow = (MemType *)(iAddrStart);
-	ptypeMemNow->state = DEVICES_MEM_DISABLE;
+    ptypeMemNow = (MemType *)(iAddrStart);
+    ptypeMemNow->state = DEVICES_MEM_DISABLE;
 
-	/* ±éÀú£¬ÕÒµ½µ±Ç°´ıÉ¾³ı¿Õ¼äµÄÇ°ÃæÒ»¸ö¿Õ¼ä */
-	for(ptypeMemPrev = (MemType *)(st_typeMemHead.startAddr); ptypeMemPrev->stopAddr < ptypeMemNow->startAddr; ptypeMemPrev = (MemType *)ptypeMemPrev->stopAddr);
+    /* éå†ï¼Œæ‰¾åˆ°å½“å‰å¾…åˆ é™¤ç©ºé—´çš„å‰é¢ä¸€ä¸ªç©ºé—´ */
+    for(ptypeMemPrev = (MemType *)(st_typeMemHead.startAddr); ptypeMemPrev->stopAddr < ptypeMemNow->startAddr; ptypeMemPrev = (MemType *)ptypeMemPrev->stopAddr);
 
-	/* ºÏ²¢Ç°ÃæÒ»¸öÏàÁ¬µÄ¿ÕÏĞ¿Õ¼ä */
-	if(ptypeMemPrev->state == DEVICES_MEM_DISABLE)
-	{
-		ptypeMemPrev->stopAddr = ptypeMemNow->stopAddr;
-		ptypeMemNow = ptypeMemPrev;
-	}
+    /* åˆå¹¶å‰é¢ä¸€ä¸ªç›¸è¿çš„ç©ºé—²ç©ºé—´ */
+    if(ptypeMemPrev->state == DEVICES_MEM_DISABLE)
+    {
+        ptypeMemPrev->stopAddr = ptypeMemNow->stopAddr;
+        ptypeMemNow = ptypeMemPrev;
+    }
 
-	/* ºÏ²¢ºóÃæÒ»¸öÏàÁ¬µÄ¿ÕÏĞ¿Õ¼ä */
-	if(ptypeMemNow->stopAddr < st_typeMemHead.stopAddr)
-	{
-		ptypeMemNext = (MemType *)ptypeMemNow->stopAddr;
+    /* åˆå¹¶åé¢ä¸€ä¸ªç›¸è¿çš„ç©ºé—²ç©ºé—´ */
+    if(ptypeMemNow->stopAddr < st_typeMemHead.stopAddr)
+    {
+        ptypeMemNext = (MemType *)ptypeMemNow->stopAddr;
 
-		if(ptypeMemNext->state == DEVICES_MEM_DISABLE)
-		{
-			ptypeMemNow->stopAddr = ptypeMemNext->stopAddr;
-		}
-	}
+        if(ptypeMemNext->state == DEVICES_MEM_DISABLE)
+        {
+            ptypeMemNow->stopAddr = ptypeMemNext->stopAddr;
+        }
+    }
 }
 
 int8_t cMemSet(void *pvMemAddr, int32_t iValue, int32_t iSize)
 {
-	uint8_t *pucData = pvMemAddr;
+    uint8_t *pucData = pvMemAddr;
 
-	if(pvMemAddr == NULL)
-		return -1;
+    if(pvMemAddr == NULL)
+        return -1;
 
-	if(iSize <= 0)
-		return -2;
+    if(iSize <= 0)
+        return -2;
 
-	while(iSize--)
-	{
-		*pucData++ = iValue;
-	}
+    while(iSize--)
+    {
+        *pucData++ = iValue;
+    }
 
-	return 0;
+    return 0;
 }
 
 void *pvMemCpy(void *pvMemTargetAddr, void *pvMemSourceAddr, int32_t iSize)
 {
-	uint8_t *pucTargetData = pvMemTargetAddr, *pucSourceData = pvMemSourceAddr;
+    uint8_t *pucTargetData = pvMemTargetAddr, *pucSourceData = pvMemSourceAddr;
 
-	if((pvMemTargetAddr == NULL) || (pvMemSourceAddr == NULL))
-		return NULL;
+    if((pvMemTargetAddr == NULL) || (pvMemSourceAddr == NULL))
+        return NULL;
 
-	if(iSize <= 0)
-		return NULL;
+    if(iSize <= 0)
+        return NULL;
 
-	while(iSize--)
-	{
-		*pucTargetData++ = *pucSourceData++;
-	}
+    while(iSize--)
+    {
+        *pucTargetData++ = *pucSourceData++;
+    }
 
-	return pvMemTargetAddr;
+    return pvMemTargetAddr;
 }

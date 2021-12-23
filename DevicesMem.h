@@ -2,24 +2,24 @@
 #define DEVICESMEM_H_INCLUDED
 
 
-/* ģ�⶯̬�ڴ��С */
+/* 模拟动态内存大小 */
 #define DEVICES_MEM_LENGTH        (1024 * 25)
 
 #define DEVICES_MEM_DISABLE       0
 #define DEVICES_MEM_ENABLE        1
 
-/* 8 �ֽڶ��� */
+/* 8 字节对齐 */
 #define DEVICES_MEM_ROUNDUP_VALUE 8
 
-/* ʹx��n�ֽڶ��� */
+/* 使x对n字节对齐 */
 #define memRoundUp(x, n) (((x) + (n) - 1) & (~((n) - 1)))
 
 
 
 typedef struct{
-	int32_t startAddr: 30;
-	int32_t stopAddr: 30;
-	uint32_t state: 2;
+    int32_t startAddr: 30;
+    int32_t stopAddr: 30;
+    uint32_t state: 2;
 }MemType;
 
 
