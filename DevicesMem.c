@@ -26,7 +26,7 @@ void vMemInit(void)
     ptypeMemNow  = (MemType *)st_typeMemHead.startAddr;
     *ptypeMemNow = st_typeMemHead;
 
-    /* 初始化内存空间末尾的管理信息 */
+    /* 初始化内存空间末尾的管理信息，标志为已使用是为了在遍历时方便判断退出，以及方便free函数判断 */
     ptypeMemNow  = (MemType *)st_typeMemHead.stopAddr;
     *ptypeMemNow = st_typeMemHead;
     ptypeMemNow->state = DEVICES_MEM_ENABLE;
@@ -67,7 +67,7 @@ void *pvMemMalloc(int32_t iSize)
     /* 没匹配到合适的最小空间，表示当前分配不了 */
     if(ptypeMemMin == NULL)
         return NULL;
-    
+
     /* 标志为已使用 */
     ptypeMemMin->state = DEVICES_MEM_ENABLE;
 
@@ -202,14 +202,10 @@ void vMemFree(void *pvMemAddr)
     }
 
     /* 合并后面一个相连的空闲空间 */
-    if(ptypeMemNow->stopAddr < st_typeMemHead.stopAddr)
+    ptypeMemNext = (MemType *)ptypeMemNow->stopAddr;
+    if(ptypeMemNext->state == DEVICES_MEM_DISABLE)
     {
-        ptypeMemNext = (MemType *)ptypeMemNow->stopAddr;
-
-        if(ptypeMemNext->state == DEVICES_MEM_DISABLE)
-        {
-            ptypeMemNow->stopAddr = ptypeMemNext->stopAddr;
-        }
+        ptypeMemNow->stopAddr = ptypeMemNext->stopAddr;
     }
 }
 
