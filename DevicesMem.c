@@ -5,10 +5,11 @@
 #include "stdint.h"
 #include "DevicesMem.h"
 
+
 MemType st_typeMemHead = {0};
 
 /* 需要增加 sizeof(MemType) * 2 个长度，以使字节对齐，以及存储管理信息 */
-uint8_t st_MemHeap[DEVICES_MEM_LENGTH + sizeof(MemType) * 2] = {0};
+static uint8_t st_MemHeap[DEVICES_MEM_LENGTH + sizeof(MemType) * 2] = {0};
 
 
 
@@ -46,7 +47,7 @@ void *pvMemMalloc(int32_t iSize)
     /* 遍历mem空间 */
     for(ptypeMemNow = (MemType *)st_typeMemHead.startAddr; (int32_t)ptypeMemNow < st_typeMemHead.stopAddr; ptypeMemNow = (MemType *)ptypeMemNow->stopAddr)
     {
-        if(ptypeMemNow->state != DEVICES_MEM_ENABLE)
+        if(ptypeMemNow->state == DEVICES_MEM_DISABLE)
         {
             iSizeNow = ptypeMemNow->stopAddr - ptypeMemNow->startAddr - sizeof(MemType);
 
@@ -66,25 +67,26 @@ void *pvMemMalloc(int32_t iSize)
     /* 没匹配到合适的最小空间，表示当前分配不了 */
     if(ptypeMemMin == NULL)
         return NULL;
+    
+    /* 标志为已使用 */
+    ptypeMemMin->state = DEVICES_MEM_ENABLE;
 
     /* 最小匹配空间被划分后还有剩余空间，并能够存储下一个头部信息 */
     if((iSizeMin - iSize) >= sizeof(MemType))
     {
-        iAddrStop = ptypeMemMin->startAddr + sizeof(MemType) + iSize;
+        iAddrStop = ptypeMemMin->stopAddr;
+        ptypeMemMin->stopAddr = ptypeMemMin->startAddr + sizeof(MemType) + iSize;
 
-        ptypeMemNext = (MemType *)iAddrStop;
-        ptypeMemNext->startAddr = iAddrStop;
-        ptypeMemNext->stopAddr  = ptypeMemMin->stopAddr;
+        ptypeMemNext = (MemType *)ptypeMemMin->stopAddr;
+        ptypeMemNext->startAddr = ptypeMemMin->stopAddr;
+        ptypeMemNext->stopAddr  = iAddrStop;
         ptypeMemNext->state     = DEVICES_MEM_DISABLE;
     }
     /* 扩容，不遗留用不上的小空闲空间 */
     else
     {
-        iSize = iSizeMin;
+        ptypeMemMin->stopAddr = ptypeMemMin->startAddr + sizeof(MemType) + iSizeMin;
     }
-
-    ptypeMemMin->state = DEVICES_MEM_ENABLE;
-    ptypeMemMin->stopAddr = ptypeMemMin->startAddr + sizeof(MemType) + iSize;
 
     /* 返回空间管理信息之后的空间地址 */
     pvHandle = (void *)(ptypeMemMin->startAddr + sizeof(MemType));
@@ -114,7 +116,7 @@ void *pvMemRealloc(void *pvMemAddr, int32_t iSize)
 {
     void *pvHandle = NULL;
     MemType *ptypeMemOld = NULL, *ptypeMemNow = NULL, *ptypeMemNext = NULL;
-    int32_t iAddrStart = 0, iNewSize = 0;
+    int32_t iAddrStart = 0, iNewSize = 0, iOldSize = 0;
 
     if(pvMemAddr == NULL)
         return NULL;
@@ -150,10 +152,8 @@ void *pvMemRealloc(void *pvMemAddr, int32_t iSize)
         /* 扩容，不遗留用不上的小空闲空间 */
         else
         {
-            iSize = iNewSize;
+            ptypeMemOld->stopAddr = ptypeMemOld->startAddr + sizeof(MemType) + iNewSize;
         }
-
-        ptypeMemOld->stopAddr = ptypeMemOld->startAddr + sizeof(MemType) + iSize;
 
         return pvMemAddr;
     }
@@ -165,7 +165,8 @@ void *pvMemRealloc(void *pvMemAddr, int32_t iSize)
             return NULL;
 
         /* 转移拷贝数据 */
-        pvMemCpy(pvHandle, pvMemAddr, iSize);
+        iOldSize = ptypeMemOld->stopAddr - ptypeMemOld->startAddr - sizeof(MemType);
+        pvMemCpy(pvHandle, pvMemAddr, iOldSize);
 
         /* 释放旧空间 */
         vMemFree(pvMemAddr);
